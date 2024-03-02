@@ -5,23 +5,17 @@ namespace Storer
     public class Store
     {
         private readonly ConcurrentQueue<ColumnarFile?> writeQueue;
-        private string directoryName = string.Empty;
+        private readonly string directoryName;
 
-        public Store(ConcurrentQueue<ColumnarFile?> writeQueue)
+        public Store(string directoryName, ConcurrentQueue<ColumnarFile?> writeQueue)
         {
             this.writeQueue = writeQueue;
+            this.directoryName= directoryName;
             Console.WriteLine("Store is ready for action");
         }
 
         public void Begin()
         {
-            if (!GenerateResultsDirectory() || string.IsNullOrEmpty(directoryName))
-            {
-                var errMsg = $"Couldn't generate results directory";
-                Console.WriteLine(errMsg);
-                throw new Exception(errMsg);
-            }
-
             while (true)
             {
                 var writeQueueSize = writeQueue.Count;
@@ -56,21 +50,6 @@ namespace Storer
             }
 
             Console.WriteLine($"Storing has ended...");
-        }
-
-        private bool GenerateResultsDirectory()
-        {
-            try
-            {
-                this.directoryName = @$"E:\C#_DEVELOPMENT\JsonLogColumnizer\results_{DateTime.Now.Ticks}";
-                Directory.CreateDirectory(directoryName);
-                return true;
-            }
-            catch (Exception err)
-            {
-                Console.WriteLine(err.Message);
-                return false;
-            }
         }
     }
 }
