@@ -32,8 +32,8 @@ namespace JsonLogColumnizer
                 return;
             }
 
-            var readQueue = new ConcurrentQueue<object?>();
-            var writeQueue = new ConcurrentQueue<ColumnarFile?>();
+            var readQueue = new ClosableConcurrentQueue<string>();
+            var writeQueue = new ClosableConcurrentQueue<ColumnarFile>();
 
             var miner = new Mine(pathOfLogFile, readQueue);
             var refiner = new Refine(readQueue, writeQueue);
