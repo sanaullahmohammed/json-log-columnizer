@@ -4,10 +4,10 @@ namespace Storer
 {
     public class Store
     {
-        private readonly ConcurrentQueue<ColumnarFile?> writeQueue;
+        private readonly ClosableConcurrentQueue<ColumnarFile> writeQueue;
         private readonly string directoryName;
 
-        public Store(string directoryName, ConcurrentQueue<ColumnarFile?> writeQueue)
+        public Store(string directoryName, ClosableConcurrentQueue<ColumnarFile> writeQueue)
         {
             this.writeQueue = writeQueue;
             this.directoryName= directoryName;
@@ -18,38 +18,29 @@ namespace Storer
         {
             while (true)
             {
-                var writeQueueSize = writeQueue.Count;
-
-                Console.WriteLine($"Size of Write-Queue is: {writeQueueSize}");
-
-                if (writeQueueSize > 0)
+                if (!writeQueue.IsEmpty)
                 {
-                    var writeQueueEntry = writeQueue.First();
+                    Console.WriteLine($"Size of Write-Queue is: {writeQueue.Count}"); // Auxiliary log
 
-                    if (writeQueueEntry == null)
-                    {
-                        Console.WriteLine($"Found NULL entry in writeQueue. Halting the storing process...");
-                        break;
-                    }
+                    var writeQueueEntry = writeQueue.First();
 
                     var pathName = Path.Combine(directoryName, writeQueueEntry.FileName);
 
                     using (StreamWriter outputFile = new StreamWriter(pathName, File.Exists(pathName)))
                     {
                         outputFile.WriteLine(writeQueueEntry.Content);
-                        Console.WriteLine($"Successfully created an entry in {writeQueueEntry.FileName}");
+                        Console.WriteLine($"Successfully created an entry in {writeQueueEntry.FileName}"); // Auxiliary log
 
                         var isWriteQueueDequeueSuccessful = writeQueue.TryDequeue(out _);
-                        Console.WriteLine($"Dequeuing of entry from writeQueue was successful? {isWriteQueueDequeueSuccessful}");
+                        Console.WriteLine($"Dequeuing of entry from writeQueue was successful? {isWriteQueueDequeueSuccessful}"); // Auxiliary log
                     }
                 }
-                else
+                else if (writeQueue.IsClosed)
                 {
-                    Console.WriteLine($"Write-Queue is empty...");
+                    Console.WriteLine($"Storing has ended");
+                    break;
                 }
             }
-
-            Console.WriteLine($"Storing has ended...");
         }
     }
 }

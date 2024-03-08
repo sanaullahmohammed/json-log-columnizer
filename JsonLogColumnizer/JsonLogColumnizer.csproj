@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CommonUtilities\CommonUtilities.csproj" />
     <ProjectReference Include="..\Miner\Miner.csproj" />
     <ProjectReference Include="..\Refiner\Refiner.csproj" />
     <ProjectReference Include="..\Storer\Storer.csproj" />
