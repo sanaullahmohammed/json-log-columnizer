@@ -1,6 +1,5 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Collections.Concurrent;
+﻿using CommonUtilities;
+using System.Diagnostics;
 using System.Text;
 
 namespace Miner
@@ -20,8 +19,12 @@ namespace Miner
 
         public void Begin()
         {
-            Console.WriteLine($"Mining LogFile: {pathOfLogFile}...");
-            var currentChunk = new List<object>();
+            Console.WriteLine($"Begin {this.GetType().Name} on LogFile: {pathOfLogFile} at {DateTime.Now}...");
+
+            // Trying to create an array-of-objects using primitive the data-type "string"
+            var currentChunk = new StringBuilder().StartJsonArray();
+
+            var stopwatch = Stopwatch.StartNew(); // Start measuring time
 
             ulong readBytes = 0;
 
@@ -31,59 +34,37 @@ namespace Miner
 
                 if (readBytes <= bufferSize)
                 {
-                    ProcessLine(line, currentChunk);
+                    currentChunk.AppendJson(line);
                 }
                 else
                 {
-                    EnqueueChunk(currentChunk);
+                    Console.WriteLine($"Time elapsed to create a usable chunk for {nameof(readQueue)} is {stopwatch.ElapsedMilliseconds}ms"); // Auxilary log
+
+                    currentChunk.AppendJson(line).EndJsonArray();
+                    readQueue.Enqueue($"{currentChunk}");
+
                     Console.WriteLine($"Enqueued chunk of size: {readBytes} Bytes into {nameof(readQueue)}"); // Auxiliary log
 
                     currentChunk.Clear();
+                    currentChunk.StartJsonArray();
 
                     readBytes = (ulong)Encoding.Unicode.GetByteCount(line);
 
-                    ProcessLine(line, currentChunk);
+                    currentChunk.AppendJson(line);
                 }
             }
 
-            Console.WriteLine($"Mining Completed for LogFile: {pathOfLogFile}...");
+            currentChunk.EndJsonArray();
+            readQueue.Enqueue($"{currentChunk}");
 
-            EnqueueChunk(currentChunk);
+            Console.WriteLine($"Time elapsed to complete {this.GetType().Name} is {stopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+            stopwatch.Stop();
+
+            Console.WriteLine($"{this.GetType().Name} Completed for LogFile: {pathOfLogFile} at {DateTime.Now}...");
+
             readQueue.Close();
 
-            Console.WriteLine($"Signaled end of Mining by closing {nameof(readQueue)}");
-        }
-
-        private static void ProcessLine(string line, List<object> chunk)
-        {
-            try
-            {
-                var jObject = JObject.Parse(line);
-                if (jObject == null)
-                {
-                    var errMsg = $"JObject Parse returned null object while parsing, {line}";
-                    Console.WriteLine(errMsg);
-                    throw new Exception(errMsg);
-                }
-                chunk.Add(jObject);
-            }
-            catch (JsonReaderException err)
-            {
-                Console.WriteLine(err.Message);
-                throw err;
-            }
-        }
-
-        private void EnqueueChunk(List<object> chunk)
-        {
-            if (chunk.Count > 0)
-            {
-                readQueue.Enqueue(JsonConvert.SerializeObject(chunk));
-            }
-            else
-            {
-                Console.WriteLine($"Empty chunk requested to be Enqueued into {nameof(readQueue)}");
-            }
+            Console.WriteLine($"Signaled end of {this.GetType().Name} by closing {nameof(readQueue)}");
         }
     }
 }

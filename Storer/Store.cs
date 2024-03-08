@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Storer
 {
@@ -16,11 +17,17 @@ namespace Storer
 
         public void Begin()
         {
+            Console.WriteLine($"Begin {this.GetType().Name} at {DateTime.Now}...");
+
+            var stopwatch = new Stopwatch(); // Start measuring time
+
             while (true)
             {
                 if (!writeQueue.IsEmpty)
                 {
-                    Console.WriteLine($"Size of Write-Queue is: {writeQueue.Count}"); // Auxiliary log
+                    stopwatch.Start();
+
+                    Console.WriteLine($"Size of {nameof(writeQueue)} is: {writeQueue.Count}"); // Auxiliary log
 
                     var writeQueueEntry = writeQueue.First();
 
@@ -28,16 +35,21 @@ namespace Storer
 
                     using (StreamWriter outputFile = new StreamWriter(pathName, File.Exists(pathName)))
                     {
-                        outputFile.WriteLine(writeQueueEntry.Content);
+                        outputFile.Write(writeQueueEntry.Content);
                         Console.WriteLine($"Successfully created an entry in {writeQueueEntry.FileName}"); // Auxiliary log
 
+                        Console.WriteLine($"Time elapsed to create an entry in file is {stopwatch.ElapsedMilliseconds}ms"); // Auxilary log
+
                         var isWriteQueueDequeueSuccessful = writeQueue.TryDequeue(out _);
-                        Console.WriteLine($"Dequeuing of entry from writeQueue was successful? {isWriteQueueDequeueSuccessful}"); // Auxiliary log
+                        Console.WriteLine($"Dequeuing of entry from {nameof(writeQueue)} was successful? {isWriteQueueDequeueSuccessful}"); // Auxiliary log
                     }
                 }
                 else if (writeQueue.IsClosed)
                 {
-                    Console.WriteLine($"Storing has ended");
+                    Console.WriteLine($"Time elapsed to complete {this.GetType().Name} is {stopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+                    stopwatch.Stop();
+
+                    Console.WriteLine($"{this.GetType().Name} Completed at {DateTime.Now}");
                     break;
                 }
             }

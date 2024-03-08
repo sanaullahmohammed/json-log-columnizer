@@ -1,8 +1,10 @@
-﻿using JsonFlatten;
+﻿using CommonUtilities;
+using JsonFlatten;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Storer;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
 
 namespace Refiner
@@ -21,12 +23,16 @@ namespace Refiner
 
         public void Begin()
         {
-            Console.WriteLine($"Refining has begun...");
+            Console.WriteLine($"Begin {this.GetType().Name} at {DateTime.Now}...");
+
+            var stopwatch = new Stopwatch(); // Start measuring time
 
             while (true)
             {
                 if (!readQueue.IsEmpty)
                 {
+                    stopwatch.Start();
+
                     Console.WriteLine($"Size of Read-Queue is: {readQueue.Count}"); // Auxiliary log
 
                     var readQueueEntry = readQueue.First();
@@ -47,8 +53,10 @@ namespace Refiner
                         var columnarFile = new ColumnarFile
                         {
                             FileName = entity.Key + ".column",
-                            Content = Convert.ToString(entity.Value)
+                            Content = entity.Value
                         };
+
+                        Console.WriteLine($"Time elapsed to create a usable chunk for {nameof(writeQueue)} is {stopwatch.ElapsedMilliseconds}ms"); // Auxilary log
 
                         writeQueue.Enqueue(columnarFile);
                         Console.WriteLine($"Successfully Enqueued columnarFile entity into writeQueue"); // Auxiliary log
@@ -59,9 +67,12 @@ namespace Refiner
                 }
                 else if (readQueue.IsClosed)
                 {
-                    Console.WriteLine($"Refining Completed");
+                    Console.WriteLine($"Time elapsed to complete {this.GetType().Name} is {stopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+                    stopwatch.Stop();
+
+                    Console.WriteLine($"{this.GetType().Name} Completed at {DateTime.Now}");
                     writeQueue.Close();
-                    Console.WriteLine($"Signaled end of Mining by closing {nameof(writeQueue)}");
+                    Console.WriteLine($"Signaled end of {this.GetType().Name} by closing {nameof(writeQueue)}");
                     break;
                 }
             }
@@ -79,11 +90,11 @@ namespace Refiner
                 {
                     if (consolidatedObject.TryGetValue(entity.Key, out var existingValue))
                     {
-                        existingValue.AppendLine(Convert.ToString(entity.Value));
+                        existingValue.AppendLine($"{entity.Value.ToJsonValue()}");
                     }
                     else
                     {
-                        consolidatedObject[entity.Key] = new StringBuilder($"{Convert.ToString(entity.Value)}\n");
+                        consolidatedObject[entity.Key] = new StringBuilder().AppendLine($"{entity.Value.ToJsonValue()}");
                     }
                 }
             }
