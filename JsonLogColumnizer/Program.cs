@@ -2,6 +2,7 @@
 using Refiner;
 using Storer;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace JsonLogColumnizer
 {
@@ -39,6 +40,8 @@ namespace JsonLogColumnizer
             var refiner = new Refine(readQueue, writeQueue);
             var storer = new Store(pathOfResultsDirectory, writeQueue);
 
+            var stopwatch = Stopwatch.StartNew(); // Start measuring time
+
             var mineThread = new Thread(miner.Begin);
             var refineThread = new Thread(refiner.Begin);
             var storeThread = new Thread(storer.Begin);
@@ -53,7 +56,9 @@ namespace JsonLogColumnizer
             refineThread.Join();
             storeThread.Join();
 
-            Console.WriteLine($"Processing Finished at {DateTime.Now}");
+            stopwatch.Stop();
+
+            Console.WriteLine($"Processing Finished at {DateTime.Now} and took {stopwatch.ElapsedMilliseconds}ms to complete");
         }
     }
 }
