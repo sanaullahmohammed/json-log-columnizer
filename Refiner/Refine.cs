@@ -25,19 +25,24 @@ namespace Refiner
         {
             Console.WriteLine($"Begin {this.GetType().Name} at {DateTime.Now}...");
 
-            var stopwatch = new Stopwatch(); // Start measuring time
+            var e2eStopwatch = new Stopwatch(); // Start measuring time
+            var deserializeStopwatch = new Stopwatch();
+            var flattenConsolidateStopwatch = new Stopwatch();
 
             while (true)
             {
                 if (!readQueue.IsEmpty)
                 {
-                    stopwatch.Start();
+                    e2eStopwatch.Start();
 
                     Console.WriteLine($"Size of Read-Queue is: {readQueue.Count}"); // Auxiliary log
 
                     var readQueueEntry = readQueue.First();
 
+                    deserializeStopwatch.Restart();
                     var sourceObjects = JsonConvert.DeserializeObject<List<object>>(readQueueEntry);
+                    Console.WriteLine($"Time elapsed to complete DeserializeObject is {deserializeStopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+                    deserializeStopwatch.Stop();
 
                     if (sourceObjects == null)
                     {
@@ -46,7 +51,10 @@ namespace Refiner
                         throw new Exception(errMsg);
                     }
 
+                    flattenConsolidateStopwatch.Restart();
                     var flattened = FlattenAndConsolidateObjects(sourceObjects);
+                    Console.WriteLine($"Time elapsed to complete {nameof(FlattenAndConsolidateObjects)} is {flattenConsolidateStopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+                    flattenConsolidateStopwatch.Stop();
 
                     foreach (var entity in flattened)
                     {
@@ -56,24 +64,28 @@ namespace Refiner
                             Content = entity.Value
                         };
 
-                        Console.WriteLine($"Time elapsed to create a usable chunk for {nameof(writeQueue)} is {stopwatch.ElapsedMilliseconds}ms"); // Auxilary log
+                        Console.WriteLine($"Time elapsed to create a usable chunk for {nameof(writeQueue)} is {e2eStopwatch.ElapsedMilliseconds}ms"); // Auxilary log
 
                         writeQueue.Enqueue(columnarFile);
                         Console.WriteLine($"Successfully Enqueued columnarFile entity into writeQueue"); // Auxiliary log
-
-                        var isReadQueueDequeueSuccessful = readQueue.TryDequeue(out _);
-                        Console.WriteLine($"Dequeuing of entry from readQueue was successful? {isReadQueueDequeueSuccessful}"); // Auxiliary log
                     }
+
+                    var isReadQueueDequeueSuccessful = readQueue.TryDequeue(out _);
+                    Console.WriteLine($"Dequeuing of entry from readQueue was successful? {isReadQueueDequeueSuccessful}"); // Auxiliary log
                 }
                 else if (readQueue.IsClosed)
                 {
-                    Console.WriteLine($"Time elapsed to complete {this.GetType().Name} is {stopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
-                    stopwatch.Stop();
+                    Console.WriteLine($"Time elapsed to complete {this.GetType().Name} is {e2eStopwatch.ElapsedMilliseconds}ms"); // Auxiliary log
+                    e2eStopwatch.Stop();
 
                     Console.WriteLine($"{this.GetType().Name} Completed at {DateTime.Now}");
                     writeQueue.Close();
                     Console.WriteLine($"Signaled end of {this.GetType().Name} by closing {nameof(writeQueue)}");
                     break;
+                }
+                else
+                {
+                    e2eStopwatch.Stop();
                 }
             }
         }

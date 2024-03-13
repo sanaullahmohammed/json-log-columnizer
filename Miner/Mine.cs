@@ -6,7 +6,7 @@ namespace Miner
 {
     public class Mine
     {
-        private readonly ulong bufferSize = 16777216; // Must be optional argument
+        private readonly ulong bufferSize = 33554432; // Must be optional argument
         private readonly string pathOfLogFile;
         private readonly ClosableConcurrentQueue<string> readQueue;
 
