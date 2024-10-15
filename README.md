@@ -35,7 +35,7 @@ Ensure you have the .NET runtime installed on your machine.
 ### Clone the Repository:
 
 ```bash
-git clone [https://github.com/yourusername/JsonLogColumnizer.git](https://github.com/sanaullahmohammed/JsonLogColumnizer.git)
+git clone https://github.com/sanaullahmohammed/JsonLogColumnizer.git
 cd JsonLogColumnizer
 ```
 
